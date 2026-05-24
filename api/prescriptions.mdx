@@ -1,0 +1,123 @@
+---
+title: "Prescriptions API Reference — Patient Monitoring"
+description: "Manage prescription records for patients: list, create, and retrieve prescriptions issued by doctors through the Patient Monitoring System."
+---
+
+The prescriptions endpoints let you create and retrieve medication prescriptions issued to patients. Doctors use these endpoints to record what was prescribed during or after a consultation. Once a prescription exists in the system, pharmacists can fulfill it by recording a dispensation via the `/dispensaciones` endpoints — at which point the prescription's `dispensada` flag is updated automatically.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+<Note>
+  The `dispensada` field tracks whether a prescription has been fulfilled. It starts as `false` when the prescription is created and becomes `true` when a pharmacist records a dispensation via `POST /dispensaciones`. Do not include `dispensada` in your request body — the system manages it automatically.
+</Note>
+
+---
+
+## GET /recetas
+
+Returns all prescription records in the system. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+```bash
+curl http://localhost:8080/recetas \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## POST /recetas
+
+Creates a new prescription record for a patient. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+### Request body
+
+<ParamField body="pacienteId" type="integer" required>
+  The ID of the patient this prescription is for.
+</ParamField>
+
+<ParamField body="doctorId" type="integer">
+  The ID of the doctor issuing the prescription. Omit if not applicable.
+</ParamField>
+
+<ParamField body="consultaId" type="integer">
+  The ID of the linked consultation, if this prescription was issued as part of a consultation.
+</ParamField>
+
+<ParamField body="fechaEmision" type="string" required>
+  The date the prescription is issued, in `YYYY-MM-DD` format. Example: `"2024-03-15"`.
+</ParamField>
+
+<ParamField body="fechaVigencia" type="string">
+  The expiry date of the prescription, in `YYYY-MM-DD` format. Example: `"2024-03-22"`. Omit if the prescription does not expire.
+</ParamField>
+
+<ParamField body="medicamentos" type="string" required>
+  Free-text description of the medications and dosage. Example: `"Paracetamol 500mg - 1 cada 8 horas por 5 dias"`.
+</ParamField>
+
+<ParamField body="indicaciones" type="string">
+  Usage instructions for the patient. Example: `"Tomar con alimentos"`.
+</ParamField>
+
+<CodeGroup>
+
+```bash Request
+curl -X POST http://localhost:8080/recetas \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pacienteId": 42,
+    "doctorId": 7,
+    "consultaId": 15,
+    "fechaEmision": "2024-03-15",
+    "fechaVigencia": "2024-03-22",
+    "medicamentos": "Paracetamol 500mg - 1 cada 8 horas por 5 dias",
+    "indicaciones": "Tomar con alimentos"
+  }'
+```
+
+```json Request body
+{
+  "pacienteId": 42,
+  "doctorId": 7,
+  "consultaId": 15,
+  "fechaEmision": "2024-03-15",
+  "fechaVigencia": "2024-03-22",
+  "medicamentos": "Paracetamol 500mg - 1 cada 8 horas por 5 dias",
+  "indicaciones": "Tomar con alimentos"
+}
+```
+
+</CodeGroup>
+
+---
+
+## GET /recetas/{id}
+
+Returns a single prescription record by its numeric ID. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+```bash
+curl http://localhost:8080/recetas/23 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## GET /recetas/paciente/{pacienteId}
+
+Returns all prescriptions for a specific patient. Patients with the `PACIENTE` role can only retrieve their own prescriptions. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+```bash
+curl http://localhost:8080/recetas/paciente/42 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| List all prescriptions | ADMIN, DOCTOR, ATENCION_CLIENTE |
+| Create prescription | ADMIN, DOCTOR, ATENCION_CLIENTE |
+| Get prescription by ID | ADMIN, DOCTOR, ATENCION_CLIENTE, PACIENTE |
+| Get prescriptions by patient | ADMIN, DOCTOR, ATENCION_CLIENTE, PACIENTE |

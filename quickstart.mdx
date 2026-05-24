@@ -1,0 +1,122 @@
+---
+title: "Quickstart: Get Started with Patient Monitoring"
+description: "Learn how to set up the Patient Monitoring System using Docker, create your first admin account, and make your first authenticated API call."
+---
+
+This guide walks you through running the Patient Monitoring System locally using Docker, registering your first admin account, and making your first authenticated API call. You will need about five minutes and a working Docker installation.
+
+## Prerequisites
+
+Before you begin, make sure you have the following:
+
+- **Docker Desktop** installed and running on your machine. Download it from [docker.com](https://www.docker.com/products/docker-desktop/).
+- The following ports must be free on your host:
+
+  | Port(s) | Used by |
+  |---------|---------|
+  | `8080` | API Gateway (main entry point) |
+  | `8081–8086` | Backend services |
+  | `8761` | Service registry |
+  | `8888` | Configuration server |
+  | `5432–5437` | Databases |
+
+<Warning>
+  If any of these ports are in use, Docker Compose will fail to start the affected service. Stop any conflicting processes before continuing.
+</Warning>
+
+## Steps
+
+<Steps>
+  <Step title="Clone the repository and start the system">
+    Clone the project from GitHub, then start all services with Docker Compose:
+
+    ```bash
+    git clone https://github.com/Jonas26-hash/Sistema-de-monitoreo-de-pacientes.git
+    cd Sistema-de-monitoreo-de-pacientes
+    docker compose up -d --build
+    ```
+
+    Docker builds and starts all containers in the background. The first build can take several minutes as Docker pulls base images and compiles each service.
+
+    <Tip>
+      Wait at least 60 seconds after `docker compose up` finishes before making API calls. The services register with Eureka and load configuration from the config server on startup. If you receive connection errors immediately after starting, wait a moment and try again.
+    </Tip>
+  </Step>
+
+  <Step title="Create the first admin user">
+    When the database is empty, the first user registered via `POST /auth/register` is automatically assigned the `ADMIN` role — no additional configuration required.
+
+    ```bash
+    curl -X POST http://localhost:8080/auth/register \
+      -H "Content-Type: application/json" \
+      -d '{
+        "username": "admin",
+        "password": "admin123",
+        "email": "admin@hospital.com",
+        "nombres": "Administrador",
+        "apellidos": "Sistema"
+      }'
+    ```
+
+    The request body fields are:
+
+    | Field | Description |
+    |-------|-------------|
+    | `username` | Login name for the account. |
+    | `password` | Account password. |
+    | `email` | Email address for the user. |
+    | `nombres` | First name(s). |
+    | `apellidos` | Last name(s). |
+  </Step>
+
+  <Step title="Log in and retrieve your JWT token">
+    Call `POST /auth/login` with the credentials you just created:
+
+    ```bash
+    curl -X POST http://localhost:8080/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{
+        "username": "admin",
+        "password": "admin123"
+      }'
+    ```
+
+    The response includes your JWT token:
+
+    ```json
+    {
+      "token": "<JWT_TOKEN>",
+      "type": "Bearer",
+      "username": "admin",
+      "roles": ["ADMIN"]
+    }
+    ```
+
+    Copy the value of the `token` field. You will include it in every subsequent request.
+
+    <Note>
+      Tokens are valid for 24 hours. After they expire, call `POST /auth/login` again to receive a new token. Your credentials do not change — only the token needs to be refreshed.
+    </Note>
+  </Step>
+
+  <Step title="Make your first authenticated API call">
+    Use your token to retrieve the list of registered patients:
+
+    ```bash
+    curl http://localhost:8080/pacientes \
+      -H "Authorization: Bearer <YOUR_TOKEN>"
+    ```
+
+    Replace `<YOUR_TOKEN>` with the token value from the previous step. A successful response returns a JSON array of patient records (empty if no patients have been registered yet).
+
+    You are now fully authenticated and can explore the rest of the API.
+  </Step>
+</Steps>
+
+## What's next
+
+Now that you have the system running and a working admin account, you can:
+
+- Read the [Authentication](/authentication) page to understand token scopes and role-based access.
+- Register additional staff users and assign them roles via the admin endpoints.
+- Explore the full [API Reference](/api/auth) to see every available endpoint.

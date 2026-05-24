@@ -1,0 +1,99 @@
+---
+title: "Send Notifications and Reminders to Patients"
+description: "Learn how to send appointment reminders and alerts to patients via email or SMS, and retrieve notification history using the Patient Monitoring System API."
+---
+
+The notifications endpoints let you send timely messages to patients through their preferred channel. You can use them to send appointment reminders before a scheduled visit, or to raise alerts about important care events. This guide covers how to create a notification, view a patient's notification history, and list all notifications in the system.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+<Steps>
+
+  <Step title="Send a notification">
+    Send a `POST` request to `/notificaciones` with the patient ID, message content, notification type, and delivery channel.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X POST http://localhost:8080/notificaciones \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "pacienteId": 1,
+        "tipo": "RECORDATORIO",
+        "mensaje": "Tiene una cita programada para manana a las 9:00 AM",
+        "canal": "EMAIL"
+      }'
+    ```
+
+    ```json Request body
+    {
+      "pacienteId": 1,
+      "tipo": "RECORDATORIO",
+      "mensaje": "Tiene una cita programada para manana a las 9:00 AM",
+      "canal": "EMAIL"
+    }
+    ```
+
+    </CodeGroup>
+
+    Key fields to understand:
+
+    | Field | Description |
+    |---|---|
+    | `tipo` | The notification type. Use `"RECORDATORIO"` for appointment and care reminders, or `"ALERTA"` for urgent clinical or administrative alerts. |
+    | `canal` | The delivery channel. Use `"EMAIL"` to send to the patient's registered email address, or `"SMS"` to send a text message to their registered phone number. |
+
+    <Note>
+      The `fechaEnvio` (send timestamp) and `enviada` (delivery flag) fields are managed entirely by the system. Do not include them in your request body — they are set automatically after the notification is processed.
+    </Note>
+
+    <Info>
+      Roles permitted to send notifications: **ADMIN**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+  <Step title="View notifications for a patient">
+    To retrieve all notifications sent to a specific patient, send a `GET` request to `/notificaciones/paciente/{pacienteId}`.
+
+    ```bash Request
+    curl http://localhost:8080/notificaciones/paciente/1 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    The response returns a list of all notification records for that patient. Each record includes the `enviada` boolean so you can confirm whether delivery was completed, and the `fechaEnvio` timestamp showing when the notification was dispatched.
+
+    <Tip>
+      Patients with the **PACIENTE** role can use this endpoint to view their own notification history. Use their `pacienteId` in the path.
+    </Tip>
+  </Step>
+
+  <Step title="List all notifications">
+    To retrieve all notifications across all patients in the system, send a `GET` request to `/notificaciones`.
+
+    ```bash Request
+    curl http://localhost:8080/notificaciones \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    <Info>
+      Roles permitted to list all notifications: **ADMIN**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+</Steps>
+
+## Notification types
+
+| Value | When to use |
+|---|---|
+| `RECORDATORIO` | Remind a patient of an upcoming appointment, medication schedule, or follow-up visit. |
+| `ALERTA` | Notify a patient of an urgent matter, such as a critical lab result or scheduling change requiring immediate attention. |
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| Send notifications | ADMIN, ATENCION_CLIENTE |
+| List all notifications | ADMIN, ATENCION_CLIENTE |
+| View own notifications | PACIENTE |

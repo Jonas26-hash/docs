@@ -1,0 +1,87 @@
+---
+title: 'Scheduling Appointments and Consultations in the PMS'
+description: 'Learn the appointment data model, understand the status lifecycle, retrieve appointments by patient, and explore the linked medical consultation object.'
+---
+
+Appointments (`citas`) represent scheduled interactions between a patient and the clinical team. They act as the scheduling backbone of the Patient Monitoring System — linking a patient to a doctor at a specific date and time, tracking the reason for the visit, and recording the outcome through a related consultation record. Before creating an appointment, ensure the patient record already exists in the system.
+
+## Appointment data model
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | Auto-generated | Unique numeric identifier assigned by the system. |
+| `pacienteId` | integer | Yes | ID of the patient the appointment is for. |
+| `doctorId` | integer | No | ID of the doctor assigned to the appointment. Can be assigned later. |
+| `fechaHora` | string | Yes | Date and time of the appointment in ISO 8601 format (e.g., `"2026-04-25T09:00:00"`). Must be a future datetime. |
+| `estado` | string | Yes | Current status of the appointment. See [Appointment statuses](#appointment-statuses) below. |
+| `motivo` | string | No | Reason for the visit. Maximum 200 characters. |
+| `observaciones` | string | No | Additional notes or observations recorded by staff. |
+
+<Note>
+The `fechaHora` value must be in the future at the time of creation. Submitting a past datetime will result in a validation error.
+</Note>
+
+## Appointment statuses
+
+The `estado` field tracks where an appointment is in its lifecycle.
+
+| Status | Meaning |
+|--------|---------|
+| `PROGRAMADA` | The appointment has been scheduled and is upcoming. |
+| `COMPLETADA` | The appointment took place and has been closed. |
+| `CANCELADA` | The appointment was cancelled before it occurred. |
+
+<Warning>
+Transitioning an appointment to `COMPLETADA` or `CANCELADA` is a terminal state. Verify the status before updating, as these transitions may not be reversible depending on your workflow configuration.
+</Warning>
+
+## Retrieving appointments for a patient
+
+To fetch all appointments associated with a specific patient, use:
+
+```bash
+GET /citas/paciente/{pacienteId}
+```
+
+### Example request
+
+```bash
+curl http://localhost:8080/citas/paciente/42 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+### Example response
+
+```json
+[
+  {
+    "id": 7,
+    "pacienteId": 42,
+    "doctorId": 3,
+    "fechaHora": "2026-04-25T09:00:00",
+    "estado": "PROGRAMADA",
+    "motivo": "Control de presión arterial",
+    "observaciones": null
+  }
+]
+```
+
+## Medical consultations (Consultas)
+
+Once an appointment is completed, the clinical outcome is captured in a consultation (`consulta`) record. A consultation is linked to the originating appointment and holds the full clinical narrative from the visit.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Auto-generated unique identifier. |
+| `pacienteId` | integer | ID of the patient. |
+| `citaId` | integer | ID of the appointment this consultation closes. |
+| `doctorId` | integer | ID of the attending doctor. |
+| `fechaConsulta` | string | Date and time of the consultation in ISO 8601 format (e.g., `"2026-04-25T10:00:00"`). |
+| `sintomas` | string | Symptoms reported by the patient. |
+| `diagnostico` | string | Doctor's diagnosis. |
+| `tratamiento` | string | Prescribed treatment plan. |
+| `observaciones` | string | Any additional clinical observations. |
+
+<Tip>
+When a doctor creates a prescription during a consultation, they can include the `consultaId` in the prescription record to keep the full clinical chain — appointment → consultation → prescription — traceable in one query.
+</Tip>

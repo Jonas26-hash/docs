@@ -1,0 +1,234 @@
+---
+title: "Appointments API: Schedule and Manage Patient Visits"
+description: "Schedule, retrieve, and update patient appointments. Link appointments to doctors, track status with estado, and filter by patient ID."
+---
+
+The Appointments API manages scheduled appointments between patients and doctors in the Patient Monitoring System. Each appointment can be linked to a specific patient and optionally to a doctor. Appointments have a status field (`estado`) to track their lifecycle — for example `PROGRAMADA` for a scheduled appointment. All datetime values use ISO 8601 format and must represent a future point in time when creating a new appointment.
+
+All requests go through the API Gateway at `http://localhost:8080`. Protected endpoints require `Authorization: Bearer <TOKEN>`.
+
+---
+
+## GET /citas
+
+Returns all appointments in the system. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/citas \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+```json Example response
+[
+  {
+    "id": 1,
+    "pacienteId": 1,
+    "doctorId": 2,
+    "fechaHora": "2026-04-25T09:00:00",
+    "estado": "PROGRAMADA",
+    "motivo": "Routine check-up",
+    "observaciones": null
+  }
+]
+```
+
+---
+
+## POST /citas
+
+Creates a new appointment. The `fechaHora` must be a future datetime. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+**Request body**
+
+<ParamField body="pacienteId" type="integer" required>
+  Numeric ID of the patient for this appointment.
+</ParamField>
+
+<ParamField body="doctorId" type="integer">
+  Numeric ID of the doctor assigned to this appointment. Can be assigned later via a `PUT` request.
+</ParamField>
+
+<ParamField body="fechaHora" type="string" required>
+  Scheduled date and time in ISO 8601 format (e.g., `"2026-04-25T09:00:00"`). Must be a future datetime.
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Appointment status. Use `"PROGRAMADA"` for a newly scheduled appointment.
+</ParamField>
+
+<ParamField body="motivo" type="string">
+  Reason for the appointment. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Additional observations or notes about the appointment.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url http://localhost:8080/citas \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "pacienteId": 1,
+    "doctorId": 2,
+    "fechaHora": "2026-04-25T09:00:00",
+    "estado": "PROGRAMADA",
+    "motivo": "Routine check-up"
+  }'
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "pacienteId": 1,
+  "doctorId": 2,
+  "fechaHora": "2026-04-25T09:00:00",
+  "estado": "PROGRAMADA",
+  "motivo": "Routine check-up",
+  "observaciones": null
+}
+```
+
+---
+
+## GET /citas/{id}
+
+Returns a single appointment by its numeric ID. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the appointment to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/citas/1 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "pacienteId": 1,
+  "doctorId": 2,
+  "fechaHora": "2026-04-25T09:00:00",
+  "estado": "PROGRAMADA",
+  "motivo": "Routine check-up",
+  "observaciones": null
+}
+```
+
+---
+
+## GET /citas/paciente/{pacienteId}
+
+Returns all appointments associated with a specific patient. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+<ParamField path="pacienteId" type="integer" required>
+  Numeric ID of the patient whose appointments to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/citas/paciente/1 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+```json Example response
+[
+  {
+    "id": 1,
+    "pacienteId": 1,
+    "doctorId": 2,
+    "fechaHora": "2026-04-25T09:00:00",
+    "estado": "PROGRAMADA",
+    "motivo": "Routine check-up",
+    "observaciones": null
+  },
+  {
+    "id": 3,
+    "pacienteId": 1,
+    "doctorId": 4,
+    "fechaHora": "2026-05-10T14:30:00",
+    "estado": "PROGRAMADA",
+    "motivo": "Follow-up",
+    "observaciones": null
+  }
+]
+```
+
+---
+
+## PUT /citas/{id}
+
+Updates one or more fields of an existing appointment. Only fields included in the request body are modified. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the appointment to update.
+</ParamField>
+
+<ParamField body="pacienteId" type="integer">
+  Updated patient ID.
+</ParamField>
+
+<ParamField body="doctorId" type="integer">
+  Updated or newly assigned doctor ID.
+</ParamField>
+
+<ParamField body="fechaHora" type="string">
+  Updated appointment datetime in ISO 8601 format. Must be a future datetime.
+</ParamField>
+
+<ParamField body="estado" type="string">
+  Updated appointment status (e.g., `"COMPLETADA"`, `"CANCELADA"`).
+</ParamField>
+
+<ParamField body="motivo" type="string">
+  Updated reason for the appointment. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Updated observations or notes.
+</ParamField>
+
+<CodeGroup>
+
+```bash Reschedule an appointment
+curl --request PUT \
+  --url http://localhost:8080/citas/1 \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "fechaHora": "2026-05-01T10:00:00",
+    "observaciones": "Rescheduled at patient request."
+  }'
+```
+
+```bash Cancel an appointment
+curl --request PUT \
+  --url http://localhost:8080/citas/1 \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "estado": "CANCELADA"
+  }'
+```
+
+</CodeGroup>

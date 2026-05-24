@@ -1,0 +1,237 @@
+---
+title: "Pharmacy and Dispensations API Reference — Hospital"
+description: "Manage medication inventory, look up drugs by code, and record prescription dispensations through the Patient Monitoring System pharmacy endpoints."
+---
+
+The pharmacy endpoints cover two areas: medication inventory management and dispensation records. Pharmacists use the medication endpoints to maintain the drug catalog and track stock levels, and the dispensation endpoints to record when a prescription has been fulfilled. When a dispensation is posted, the linked prescription's `dispensada` status is updated to `true` automatically.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+---
+
+## Medications
+
+### GET /medicamentos
+
+Returns all medication records in the system. Requires the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `FARMACEUTICO` role.
+
+```bash
+curl http://localhost:8080/medicamentos \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+### POST /medicamentos
+
+Adds a new medication to the catalog. Requires the `ADMIN` or `FARMACEUTICO` role.
+
+#### Request body
+
+<ParamField body="codigo" type="string" required>
+  Unique product code. Must be uppercase alphanumeric only. Example: `"PARA001"`.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  The medication name. Example: `"Paracetamol 500mg"`.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional description of the medication.
+</ParamField>
+
+<ParamField body="presentacion" type="string">
+  Dosage form or packaging. Example: `"Tableta"`, `"Capsula"`, `"Jarabe"`.
+</ParamField>
+
+<ParamField body="stock" type="integer" default="0">
+  Current stock quantity. Must be `≥ 0`. Defaults to `0` if omitted.
+</ParamField>
+
+<ParamField body="stockMinimo" type="integer" default="10">
+  Low-stock alert threshold. Must be `≥ 0`. Defaults to `10` if omitted.
+</ParamField>
+
+<ParamField body="contraindicaciones" type="string">
+  Known contraindications for this medication.
+</ParamField>
+
+<CodeGroup>
+
+```bash Request
+curl -X POST http://localhost:8080/medicamentos \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codigo": "PARA001",
+    "nombre": "Paracetamol 500mg",
+    "descripcion": "Analgesico y antipiretico",
+    "presentacion": "Tableta",
+    "stock": 200,
+    "stockMinimo": 50,
+    "contraindicaciones": "Hipersensibilidad al paracetamol"
+  }'
+```
+
+```json Request body
+{
+  "codigo": "PARA001",
+  "nombre": "Paracetamol 500mg",
+  "descripcion": "Analgesico y antipiretico",
+  "presentacion": "Tableta",
+  "stock": 200,
+  "stockMinimo": 50,
+  "contraindicaciones": "Hipersensibilidad al paracetamol"
+}
+```
+
+</CodeGroup>
+
+---
+
+### GET /medicamentos/{id}
+
+Returns a single medication record by its numeric ID. Requires the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `FARMACEUTICO` role.
+
+```bash
+curl http://localhost:8080/medicamentos/5 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+### GET /medicamentos/codigo/{codigo}
+
+Looks up a medication by its unique product code. Use this endpoint when you have the code but not the numeric ID. Requires the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `FARMACEUTICO` role.
+
+```bash
+curl http://localhost:8080/medicamentos/codigo/PARA001 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+### PUT /medicamentos/{id}
+
+Updates the details or stock level of an existing medication. Include only the fields you want to change. Requires the `ADMIN` or `FARMACEUTICO` role.
+
+<CodeGroup>
+
+```bash Request
+curl -X PUT http://localhost:8080/medicamentos/5 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stock": 180,
+    "stockMinimo": 40
+  }'
+```
+
+```json Request body
+{
+  "stock": 180,
+  "stockMinimo": 40
+}
+```
+
+</CodeGroup>
+
+---
+
+## Dispensations
+
+### GET /dispensaciones
+
+Returns all dispensation records in the system. Requires the `ADMIN` or `FARMACEUTICO` role.
+
+```bash
+curl http://localhost:8080/dispensaciones \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+### POST /dispensaciones
+
+Records that a prescription has been fulfilled. Posting a dispensation marks the linked prescription's `dispensada` field as `true`. Requires the `ADMIN` or `FARMACEUTICO` role.
+
+#### Request body
+
+<ParamField body="recetaId" type="integer" required>
+  The ID of the prescription being fulfilled.
+</ParamField>
+
+<ParamField body="medicamentoId" type="integer" required>
+  The ID of the medication being dispensed.
+</ParamField>
+
+<ParamField body="cantidad" type="integer" required>
+  The quantity of the medication dispensed.
+</ParamField>
+
+<ParamField body="fechaDispensacion" type="string" required>
+  The date of dispensation, in `YYYY-MM-DD` format. Example: `"2024-03-16"`.
+</ParamField>
+
+<ParamField body="farmaceuticoId" type="integer">
+  The ID of the pharmacist performing the dispensation. Optional.
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Any additional notes about the dispensation. Optional.
+</ParamField>
+
+<CodeGroup>
+
+```bash Request
+curl -X POST http://localhost:8080/dispensaciones \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recetaId": 23,
+    "medicamentoId": 5,
+    "cantidad": 15,
+    "fechaDispensacion": "2024-03-16",
+    "farmaceuticoId": 3,
+    "observaciones": "Dispensado segun receta medica"
+  }'
+```
+
+```json Request body
+{
+  "recetaId": 23,
+  "medicamentoId": 5,
+  "cantidad": 15,
+  "fechaDispensacion": "2024-03-16",
+  "farmaceuticoId": 3,
+  "observaciones": "Dispensado segun receta medica"
+}
+```
+
+</CodeGroup>
+
+---
+
+### GET /dispensaciones/receta/{recetaId}
+
+Returns all dispensation records linked to a specific prescription. Requires the `ADMIN` or `FARMACEUTICO` role.
+
+```bash
+curl http://localhost:8080/dispensaciones/receta/23 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| List all medications | ADMIN, DOCTOR, ATENCION_CLIENTE, FARMACEUTICO |
+| Create medication | ADMIN, FARMACEUTICO |
+| Get medication by ID | ADMIN, DOCTOR, ATENCION_CLIENTE, FARMACEUTICO |
+| Get medication by code | ADMIN, DOCTOR, ATENCION_CLIENTE, FARMACEUTICO |
+| Update medication | ADMIN, FARMACEUTICO |
+| List all dispensations | ADMIN, FARMACEUTICO |
+| Record dispensation | ADMIN, FARMACEUTICO |
+| Get dispensations by prescription | ADMIN, FARMACEUTICO |

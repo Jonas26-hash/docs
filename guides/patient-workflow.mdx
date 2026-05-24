@@ -1,0 +1,132 @@
+---
+title: "Register and Manage Patients in the Hospital System"
+description: "Learn how to create, look up, update, and deactivate patient records using the Patient Monitoring System API."
+---
+
+The patient management endpoints let you build and maintain a complete registry of patients in the system. Whether you are onboarding a new patient at the front desk, updating contact information, or deactivating a record, these steps walk you through each operation from start to finish.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+<Steps>
+
+  <Step title="Create a patient record">
+    Send a `POST` request to `/pacientes` with the patient's personal details. All fields in the example below are required for initial registration.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X POST http://localhost:8080/pacientes \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "nombres": "Juan",
+        "apellidoPaterno": "Perez",
+        "apellidoMaterno": "Gomez",
+        "dni": "12345678",
+        "fechaNacimiento": "1990-05-15",
+        "genero": "M",
+        "telefono": "999888777",
+        "email": "juan@perez.com"
+      }'
+    ```
+
+    ```json Request body
+    {
+      "nombres": "Juan",
+      "apellidoPaterno": "Perez",
+      "apellidoMaterno": "Gomez",
+      "dni": "12345678",
+      "fechaNacimiento": "1990-05-15",
+      "genero": "M",
+      "telefono": "999888777",
+      "email": "juan@perez.com"
+    }
+    ```
+
+    </CodeGroup>
+
+    The response includes the newly assigned `id` for the patient. Save this value — you will use it for updates and deactivations.
+
+    <Info>
+      Roles permitted to create patients: **ADMIN**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+  <Step title="Look up a patient by DNI">
+    To retrieve a single patient using their national identity number, send a `GET` request to `/pacientes/dni/{dni}`.
+
+    ```bash Request
+    curl http://localhost:8080/pacientes/dni/12345678 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    The response returns the full patient object, including the system-assigned `id` and the current `activo` status.
+
+    <Tip>
+      Use this endpoint when you have a patient's DNI but do not know their internal record ID.
+    </Tip>
+  </Step>
+
+  <Step title="Update a patient record">
+    Send a `PUT` request to `/pacientes/{id}` with only the fields you want to change. You do not need to include the full patient object.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X PUT http://localhost:8080/pacientes/1 \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{"nombres": "Juan Carlos", "apellidoPaterno": "Perez"}'
+    ```
+
+    ```json Request body
+    {
+      "nombres": "Juan Carlos",
+      "apellidoPaterno": "Perez"
+    }
+    ```
+
+    </CodeGroup>
+
+    <Info>
+      Roles permitted to update patients: **ADMIN**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+  <Step title="List all patients">
+    To retrieve a paginated list of all patient records in the system, send a `GET` request to `/pacientes`.
+
+    ```bash Request
+    curl http://localhost:8080/pacientes \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    <Info>
+      Roles permitted to list patients: **ADMIN**, **DOCTOR**, **ATENCION_CLIENTE**. Patients with the **PACIENTE** role can only access their own record — use the DNI lookup or a dedicated profile endpoint instead.
+    </Info>
+  </Step>
+
+  <Step title="Deactivate a patient">
+    Send a `DELETE` request to `/pacientes/{id}` to deactivate the patient record.
+
+    ```bash Request
+    curl -X DELETE http://localhost:8080/pacientes/1 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    <Warning>
+      This is a **soft delete**. The patient record is not removed from the database — the `activo` field is set to `false`. Historical data such as appointments, prescriptions, and charges remains intact. Only users with the **ADMIN** role can perform this operation.
+    </Warning>
+  </Step>
+
+</Steps>
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| Create patient | ADMIN, ATENCION_CLIENTE |
+| Update patient | ADMIN, ATENCION_CLIENTE |
+| List all patients | ADMIN, DOCTOR, ATENCION_CLIENTE |
+| View own record | PACIENTE |
+| Deactivate patient | ADMIN |

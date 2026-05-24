@@ -1,0 +1,113 @@
+---
+title: "Create and Manage Patient Charges and Billing"
+description: "Learn how to create charges for consultations and prescriptions, view patient billing history, and look up individual charge records using the billing API."
+---
+
+The billing endpoints let you record and track all charges associated with a patient's care. Charges are created when a billable event occurs — such as a consultation or prescription — and can be marked as pending or paid. This guide walks through creating a charge, retrieving billing history, and querying individual records.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+<Steps>
+
+  <Step title="Create a charge">
+    Send a `POST` request to `/cobros` to record a new charge against a patient. You need the patient's ID and the ID of the related entity (appointment, prescription, etc.) before making this request.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X POST http://localhost:8080/cobros \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "pacienteId": 1,
+        "tipo": "CONSULTA",
+        "referenciaId": 1,
+        "monto": 50.00,
+        "estado": "PENDIENTE",
+        "descripcion": "Consulta medica general"
+      }'
+    ```
+
+    ```json Request body
+    {
+      "pacienteId": 1,
+      "tipo": "CONSULTA",
+      "referenciaId": 1,
+      "monto": 50.00,
+      "estado": "PENDIENTE",
+      "descripcion": "Consulta medica general"
+    }
+    ```
+
+    </CodeGroup>
+
+    Key fields to understand:
+
+    | Field | Description |
+    |---|---|
+    | `tipo` | The type of charge. See the charge types table below for all valid values. |
+    | `referenciaId` | The ID of the related entity — for example, the appointment ID for a `CONSULTA` charge or the prescription ID for a `RECETA` charge. |
+    | `estado` | The payment status. Use `"PENDIENTE"` when the charge has not yet been collected, or `"PAGADO"` once payment is received. |
+
+    <Info>
+      Roles permitted to create charges: **ADMIN**, **CAJERO**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+  <Step title="View all charges for a patient">
+    To retrieve the full billing history for a specific patient, send a `GET` request to `/cobros/paciente/{pacienteId}`.
+
+    ```bash Request
+    curl http://localhost:8080/cobros/paciente/1 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    The response returns a list of all charge records for that patient, ordered by creation date. Each record includes the `estado` field so you can quickly identify outstanding balances.
+
+    <Tip>
+      Patients with the **PACIENTE** role can use this endpoint to view their own charges. They cannot access other patients' billing records.
+    </Tip>
+  </Step>
+
+  <Step title="Get a specific charge">
+    To retrieve a single charge by its ID, send a `GET` request to `/cobros/{id}`.
+
+    ```bash Request
+    curl http://localhost:8080/cobros/1 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    Use this endpoint when you need to verify the details of a specific charge before processing payment or issuing a receipt.
+  </Step>
+
+  <Step title="List all charges">
+    To retrieve all charges across all patients, send a `GET` request to `/cobros`.
+
+    ```bash Request
+    curl http://localhost:8080/cobros \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    <Info>
+      Roles permitted to list all charges: **ADMIN**, **CAJERO**, **ATENCION_CLIENTE**. Patients with the **PACIENTE** role can only view their own charges using the patient-specific endpoint above.
+    </Info>
+  </Step>
+
+</Steps>
+
+## Charge types
+
+The `tipo` field identifies the nature of the billable event. Use the values below exactly as shown — the API is case-sensitive.
+
+| Value | When to use |
+|---|---|
+| `CONSULTA` | A medical consultation or appointment with a doctor. Set `referenciaId` to the appointment ID. |
+| `RECETA` | A prescription issued to the patient. Set `referenciaId` to the prescription ID. |
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| Create charges | ADMIN, CAJERO, ATENCION_CLIENTE |
+| List all charges | ADMIN, CAJERO, ATENCION_CLIENTE |
+| View own charges | PACIENTE |

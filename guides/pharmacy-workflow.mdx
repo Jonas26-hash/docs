@@ -1,0 +1,176 @@
+---
+title: "Manage Pharmacy Inventory and Fulfill Prescriptions"
+description: "Learn how to add and track medications in inventory, monitor stock levels, and record dispensations against patient prescriptions using the pharmacy API."
+---
+
+The pharmacy endpoints cover two related workflows: maintaining your medication catalog with accurate stock levels, and recording dispensations when medications are issued against a prescription. This guide walks through both workflows in sequence, from adding a medication to dispensing it to a patient.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+## Part 1: Medication inventory
+
+Use these endpoints to manage the medications available in your pharmacy. Only **ADMIN** and **FARMACEUTICO** users can create or modify inventory records.
+
+<Steps>
+
+  <Step title="Add a new medication">
+    Send a `POST` request to `/medicamentos` with the medication details. The `codigo` must be unique across your catalog.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X POST http://localhost:8080/medicamentos \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "codigo": "PARA001",
+        "nombre": "Paracetamol 500mg",
+        "descripcion": "Analgesico y antifebril",
+        "presentacion": "Tableta",
+        "stock": 100,
+        "stockMinimo": 20
+      }'
+    ```
+
+    ```json Request body
+    {
+      "codigo": "PARA001",
+      "nombre": "Paracetamol 500mg",
+      "descripcion": "Analgesico y antifebril",
+      "presentacion": "Tableta",
+      "stock": 100,
+      "stockMinimo": 20
+    }
+    ```
+
+    </CodeGroup>
+
+    Key fields to understand:
+
+    | Field | Description |
+    |---|---|
+    | `codigo` | Unique product code. Use uppercase alphanumeric characters only (e.g., `PARA001`). |
+    | `stockMinimo` | Minimum stock threshold. The system uses this value to generate low-stock alerts when current `stock` falls below it. |
+
+    <Tip>
+      Set `stockMinimo` to reflect your typical reorder lead time so alerts fire early enough to restock before running out.
+    </Tip>
+  </Step>
+
+  <Step title="Look up a medication by code">
+    To retrieve a medication using its product code, send a `GET` request to `/medicamentos/codigo/{codigo}`.
+
+    ```bash Request
+    curl http://localhost:8080/medicamentos/codigo/PARA001 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    The response returns the full medication record, including the system-assigned `id` and current `stock` level. You will need the `id` when updating stock or recording a dispensation.
+  </Step>
+
+  <Step title="Update medication stock">
+    Send a `PUT` request to `/medicamentos/{id}` with the updated stock value. You can include any field you want to change — you do not need to send the full record.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X PUT http://localhost:8080/medicamentos/1 \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{"stock": 95}'
+    ```
+
+    ```json Request body
+    {
+      "stock": 95
+    }
+    ```
+
+    </CodeGroup>
+
+    <Note>
+      Stock is also decremented automatically by the system when a dispensation is recorded. Manual updates here are typically used for inventory corrections or restocking.
+    </Note>
+  </Step>
+
+  <Step title="List all medications">
+    To retrieve the full medication catalog, send a `GET` request to `/medicamentos`.
+
+    ```bash Request
+    curl http://localhost:8080/medicamentos \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    <Info>
+      Roles permitted to read the medication list: **ADMIN**, **FARMACEUTICO**, **DOCTOR**, **ATENCION_CLIENTE**.
+    </Info>
+  </Step>
+
+</Steps>
+
+## Part 2: Dispensing medications
+
+Once a prescription exists in the system, you can record a dispensation to track what was issued, by whom, and when.
+
+<Steps>
+
+  <Step title="Record a dispensation">
+    Send a `POST` request to `/dispensaciones` with the prescription ID, medication ID, and dispensation details.
+
+    <CodeGroup>
+
+    ```bash Request
+    curl -X POST http://localhost:8080/dispensaciones \
+      -H "Authorization: Bearer <TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "recetaId": 1,
+        "medicamentoId": 1,
+        "cantidad": 15,
+        "fechaDispensacion": "2026-04-25",
+        "farmaceuticoId": 1,
+        "observaciones": "Dispensado completo"
+      }'
+    ```
+
+    ```json Request body
+    {
+      "recetaId": 1,
+      "medicamentoId": 1,
+      "cantidad": 15,
+      "fechaDispensacion": "2026-04-25",
+      "farmaceuticoId": 1,
+      "observaciones": "Dispensado completo"
+    }
+    ```
+
+    </CodeGroup>
+
+    The `recetaId` must reference an existing prescription, and `medicamentoId` must reference an existing medication record. The system will automatically reduce the medication's `stock` by the `cantidad` value.
+
+    <Warning>
+      If `cantidad` exceeds the current `stock` of the referenced medication, the request will fail. Verify current stock with a lookup before recording the dispensation.
+    </Warning>
+  </Step>
+
+  <Step title="View dispensations for a prescription">
+    To retrieve all dispensations associated with a specific prescription, send a `GET` request to `/dispensaciones/receta/{recetaId}`.
+
+    ```bash Request
+    curl http://localhost:8080/dispensaciones/receta/1 \
+      -H "Authorization: Bearer <TOKEN>"
+    ```
+
+    This returns a list of all dispensation records tied to that prescription, useful for auditing partial dispensations or verifying completion.
+  </Step>
+
+</Steps>
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| Add / update medications | ADMIN, FARMACEUTICO |
+| List medications | ADMIN, FARMACEUTICO, DOCTOR, ATENCION_CLIENTE |
+| Record dispensation | ADMIN, FARMACEUTICO |
+| View dispensations | ADMIN, FARMACEUTICO |

@@ -1,0 +1,296 @@
+---
+title: "Authentication API: Login, Register, and Manage Users"
+description: "Log in to get a JWT token, register new users with role assignments, and manage user accounts through the Patient Monitoring System auth endpoints."
+---
+
+The Authentication API handles all identity and access management for the Patient Monitoring System. Use the `/auth/login` endpoint to obtain a JWT, then pass it as a `Bearer` token in the `Authorization` header when calling protected endpoints. User registration is role-gated after the first account is created, and certain roles (such as `PACIENTE`) trigger automatic side effects like creating a linked patient record.
+
+All requests go through the API Gateway at `http://localhost:8080`.
+
+---
+
+## POST /auth/login
+
+Authenticates a user and returns a signed JWT along with basic account information. No authentication is required for this endpoint.
+
+<ParamField body="username" type="string" required>
+  The account username.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url http://localhost:8080/auth/login \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "username": "admin",
+    "password": "secret"
+  }'
+```
+
+</CodeGroup>
+
+**Response fields**
+
+<ResponseField name="token" type="string" required>
+  Signed JWT to use as a Bearer token in subsequent requests.
+</ResponseField>
+
+<ResponseField name="userId" type="integer" required>
+  Unique numeric ID of the authenticated user.
+</ResponseField>
+
+<ResponseField name="username" type="string" required>
+  Username of the authenticated account.
+</ResponseField>
+
+<ResponseField name="roles" type="string[]" required>
+  List of roles assigned to this user (e.g., `["ADMIN"]`, `["DOCTOR"]`).
+</ResponseField>
+
+```json Example response
+{
+  "token": "eyJ...",
+  "userId": 1,
+  "username": "admin",
+  "roles": ["ADMIN"]
+}
+```
+
+---
+
+## POST /auth/register
+
+Creates a new user account. The very first user registered in the system is automatically assigned the `ADMIN` role. All subsequent registrations require a valid `ADMIN` JWT.
+
+<Info>
+  If you register a user with the `PACIENTE` role and provide a `dni`, the system automatically creates a linked patient record for that user.
+</Info>
+
+<Warning>
+  All registrations after the first require `Authorization: Bearer <ADMIN_TOKEN>`. Requests without a valid ADMIN token will be rejected.
+</Warning>
+
+**Request body**
+
+<ParamField body="username" type="string" required>
+  Unique username for the new account.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Password for the new account.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address for the new account.
+</ParamField>
+
+<ParamField body="roles" type="string[]" required>
+  One or more roles to assign. Valid values: `ADMIN`, `DOCTOR`, `PACIENTE`, `ATENCION_CLIENTE`, `CAJERO`, and `FARMACEUTICO`.
+</ParamField>
+
+<ParamField body="nombres" type="string">
+  First name(s) of the user.
+</ParamField>
+
+<ParamField body="apellidos" type="string">
+  Last name(s) of the user.
+</ParamField>
+
+<ParamField body="dni" type="string">
+  National identity number. Required when `roles` includes `PACIENTE` — triggers automatic patient record creation.
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number.
+</ParamField>
+
+<ParamField body="especialidad" type="string">
+  Medical specialty. Relevant when `roles` includes `DOCTOR`.
+</ParamField>
+
+<CodeGroup>
+
+```bash Register first user (no auth)
+curl --request POST \
+  --url http://localhost:8080/auth/register \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "username": "admin",
+    "password": "secret",
+    "email": "admin@hospital.com",
+    "roles": ["ADMIN"]
+  }'
+```
+
+```bash Register subsequent user (ADMIN auth required)
+curl --request POST \
+  --url http://localhost:8080/auth/register \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "username": "dr.smith",
+    "password": "secret",
+    "email": "dr.smith@hospital.com",
+    "roles": ["DOCTOR"],
+    "nombres": "John",
+    "apellidos": "Smith",
+    "especialidad": "Cardiology"
+  }'
+```
+
+```bash Register a patient user
+curl --request POST \
+  --url http://localhost:8080/auth/register \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "username": "jdoe",
+    "password": "secret",
+    "email": "jdoe@example.com",
+    "roles": ["PACIENTE"],
+    "nombres": "Jane",
+    "apellidos": "Doe",
+    "dni": "12345678"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## GET /auth/usuarios
+
+Returns a list of all user accounts in the system. Requires the `ADMIN` role.
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/auth/usuarios \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+---
+
+## GET /auth/usuarios/{id}
+
+Returns a single user account by its numeric ID. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `CAJERO` role.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the user to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/auth/usuarios/1 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+---
+
+## GET /auth/usuarios/rol/{rol}
+
+Returns all users that have the specified role. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `CAJERO` role.
+
+<ParamField path="rol" type="string" required>
+  The role to filter by. For example, `DOCTOR`, `PACIENTE`, `ADMIN`.
+</ParamField>
+
+<CodeGroup>
+
+```bash List all doctors
+curl --request GET \
+  --url http://localhost:8080/auth/usuarios/rol/DOCTOR \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+---
+
+## PUT /auth/usuarios/{id}
+
+Updates a user's profile fields or role assignments. Requires the `ADMIN` role. Supply only the fields you want to change.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the user to update.
+</ParamField>
+
+<ParamField body="username" type="string">
+  New username.
+</ParamField>
+
+<ParamField body="email" type="string">
+  New email address.
+</ParamField>
+
+<ParamField body="roles" type="string[]">
+  Replacement role list for the user.
+</ParamField>
+
+<ParamField body="nombres" type="string">
+  Updated first name(s).
+</ParamField>
+
+<ParamField body="apellidos" type="string">
+  Updated last name(s).
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Updated phone number.
+</ParamField>
+
+<ParamField body="especialidad" type="string">
+  Updated medical specialty.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request PUT \
+  --url http://localhost:8080/auth/usuarios/5 \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "roles": ["DOCTOR", "ATENCION_CLIENTE"],
+    "especialidad": "Neurology"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## DELETE /auth/usuarios/{id}
+
+Deactivates a user account by setting `activo` to `false`. This is a soft delete — the account record is retained. Requires the `ADMIN` role.
+
+<Warning>
+  Deactivated users can no longer log in. This action does not delete the account or its associated records.
+</Warning>
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the user to deactivate.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request DELETE \
+  --url http://localhost:8080/auth/usuarios/5 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>

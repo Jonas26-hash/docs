@@ -1,0 +1,68 @@
+---
+title: "Patient Monitoring System: Platform Overview"
+description: "Patient Monitoring System is a hospital management API covering patients, appointments, prescriptions, pharmacy inventory, billing, and notifications."
+---
+
+The Patient Monitoring System gives hospitals and clinics a single, unified API to manage every stage of patient care. From registering a new patient and scheduling their first appointment to issuing prescriptions, dispensing medications, processing billing, and sending notifications — every operation is available through one gateway, so your team spends less time coordinating between systems and more time delivering care.
+
+## What you can do
+
+The platform covers six core areas of hospital operations:
+
+**Patient management** — Register patients, maintain their demographic and insurance records, and retrieve their full history at any time.
+
+**Appointment scheduling** — Create, update, and cancel appointments. Doctors and staff can query upcoming schedules and mark consultations as complete.
+
+**Prescriptions** — Doctors issue prescriptions directly through the API. Each prescription is linked to the patient's record and tracks dispensation status automatically.
+
+**Pharmacy inventory** — Pharmacists manage medication stock, fulfill prescription orders, and record each dispensation. Low-stock conditions are visible in real time.
+
+**Billing** — Cashiers generate charges for consultations and services, apply payments, and close invoices. The full billing history is available per patient or per encounter.
+
+**Notifications** — Send appointment reminders, prescription alerts, and custom messages to patients by email or SMS from a single endpoint.
+
+## Who uses it
+
+The system uses role-based access control. Every user is assigned one of six roles, each with a defined set of permissions:
+
+| Role | Description |
+|------|-------------|
+| `ADMIN` | Full access to all resources and user management. |
+| `DOCTOR` | Manages consultations, issues prescriptions, and views patient records. |
+| `ATENCION_CLIENTE` | Handles patient registration and appointment scheduling. |
+| `FARMACEUTICO` | Manages pharmacy inventory and records dispensations. |
+| `CAJERO` | Creates and processes billing records. |
+| `PACIENTE` | Read-only access to their own records, appointments, and prescriptions. |
+
+<Note>
+  The first user registered in an empty database is automatically assigned the `ADMIN` role. That admin then creates accounts for other staff and assigns their roles.
+</Note>
+
+## How the API works
+
+All requests go through a single API gateway at `http://localhost:8080`. Every feature — patients, appointments, prescriptions, pharmacy, billing, and notifications — is accessible through this single entry point.
+
+Every protected endpoint requires a JWT token in the `Authorization` header:
+
+```http
+Authorization: Bearer <YOUR_TOKEN>
+```
+
+You obtain a token by calling `POST /auth/login` with your credentials. Tokens are valid for 24 hours, after which you must log in again to receive a new one.
+
+The base URL for all requests is:
+
+```
+http://localhost:8080
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Set up the system with Docker and make your first authenticated API call in four steps.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn how JWT authentication works and how to include your token in every request.
+  </Card>
+</CardGroup>

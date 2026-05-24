@@ -1,0 +1,196 @@
+---
+title: "Consultations API: Record Symptoms and Diagnoses"
+description: "Record and retrieve medical consultations including symptoms, diagnoses, and treatments. Link consultations to appointments and patients."
+---
+
+The Consultations API stores the clinical record of each patient interaction — including presenting symptoms, the doctor's diagnosis, prescribed treatment, and any additional observations. A consultation can be linked to an existing appointment via `citaId` and to a specific doctor via `doctorId`, though both are optional. This allows consultations to be recorded even for walk-in visits or when a doctor has not yet been assigned.
+
+All requests go through the API Gateway at `http://localhost:8080`.
+
+<Note>
+  All consultation endpoints are currently public and do not require authentication. Any client can read or write consultation records without providing an `Authorization` header.
+</Note>
+
+---
+
+## GET /consultas
+
+Returns all consultation records in the system. No authentication required.
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/consultas
+```
+
+</CodeGroup>
+
+```json Example response
+[
+  {
+    "id": 1,
+    "pacienteId": 1,
+    "citaId": 1,
+    "doctorId": 2,
+    "fechaConsulta": "2026-04-25T10:00:00",
+    "sintomas": "Headache and fatigue",
+    "diagnostico": "Tension headache",
+    "tratamiento": "Ibuprofen 400mg as needed",
+    "observaciones": "Patient advised to rest and stay hydrated."
+  }
+]
+```
+
+---
+
+## POST /consultas
+
+Creates a new consultation record. No authentication required.
+
+**Request body**
+
+<ParamField body="pacienteId" type="integer" required>
+  Numeric ID of the patient this consultation belongs to.
+</ParamField>
+
+<ParamField body="citaId" type="integer">
+  Numeric ID of an existing appointment to link to this consultation.
+</ParamField>
+
+<ParamField body="doctorId" type="integer">
+  Numeric ID of the doctor conducting the consultation.
+</ParamField>
+
+<ParamField body="fechaConsulta" type="string" required>
+  Date and time of the consultation in ISO 8601 format (e.g., `"2026-04-25T10:00:00"`).
+</ParamField>
+
+<ParamField body="sintomas" type="string">
+  Symptoms reported by the patient at the time of the consultation.
+</ParamField>
+
+<ParamField body="diagnostico" type="string">
+  Diagnosis made by the doctor.
+</ParamField>
+
+<ParamField body="tratamiento" type="string">
+  Prescribed treatment or care plan.
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Additional notes or observations recorded during the consultation.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url http://localhost:8080/consultas \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "pacienteId": 1,
+    "citaId": 1,
+    "doctorId": 2,
+    "fechaConsulta": "2026-04-25T10:00:00",
+    "sintomas": "Headache and fatigue",
+    "diagnostico": "Tension headache",
+    "tratamiento": "Ibuprofen 400mg as needed",
+    "observaciones": "Patient advised to rest and stay hydrated."
+  }'
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "pacienteId": 1,
+  "citaId": 1,
+  "doctorId": 2,
+  "fechaConsulta": "2026-04-25T10:00:00",
+  "sintomas": "Headache and fatigue",
+  "diagnostico": "Tension headache",
+  "tratamiento": "Ibuprofen 400mg as needed",
+  "observaciones": "Patient advised to rest and stay hydrated."
+}
+```
+
+---
+
+## GET /consultas/{id}
+
+Returns a single consultation record by its numeric ID. No authentication required.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the consultation to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/consultas/1
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "pacienteId": 1,
+  "citaId": 1,
+  "doctorId": 2,
+  "fechaConsulta": "2026-04-25T10:00:00",
+  "sintomas": "Headache and fatigue",
+  "diagnostico": "Tension headache",
+  "tratamiento": "Ibuprofen 400mg as needed",
+  "observaciones": "Patient advised to rest and stay hydrated."
+}
+```
+
+---
+
+## GET /consultas/paciente/{pacienteId}
+
+Returns all consultation records for a specific patient. No authentication required.
+
+<ParamField path="pacienteId" type="integer" required>
+  Numeric ID of the patient whose consultations to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/consultas/paciente/1
+```
+
+</CodeGroup>
+
+```json Example response
+[
+  {
+    "id": 1,
+    "pacienteId": 1,
+    "citaId": 1,
+    "doctorId": 2,
+    "fechaConsulta": "2026-04-25T10:00:00",
+    "sintomas": "Headache and fatigue",
+    "diagnostico": "Tension headache",
+    "tratamiento": "Ibuprofen 400mg as needed",
+    "observaciones": "Patient advised to rest and stay hydrated."
+  },
+  {
+    "id": 4,
+    "pacienteId": 1,
+    "citaId": 3,
+    "doctorId": 4,
+    "fechaConsulta": "2026-05-10T14:45:00",
+    "sintomas": "Persistent cough",
+    "diagnostico": "Acute bronchitis",
+    "tratamiento": "Amoxicillin 500mg for 7 days",
+    "observaciones": null
+  }
+]
+```

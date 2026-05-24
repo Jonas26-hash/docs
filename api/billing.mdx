@@ -1,0 +1,141 @@
+---
+title: "Billing and Charges API Reference — Hospital System"
+description: "Create and retrieve charge records for patients — covering consultations, prescriptions, and other billable services in the hospital system."
+---
+
+The billing endpoints let you generate, look up, and list financial charges for patients. Cashiers use these endpoints to record payment obligations for consultations, prescriptions, and other services. Each charge carries a `tipo` field to categorize the associated service, a `referenciaId` to link it back to the originating record, and a `estado` field to track payment status through its lifecycle from pending to paid.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+---
+
+## GET /cobros
+
+Returns all charge records in the system. Requires the `ADMIN`, `CAJERO`, or `ATENCION_CLIENTE` role.
+
+```bash
+curl http://localhost:8080/cobros \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## POST /cobros
+
+Creates a new charge record for a patient. Requires the `ADMIN`, `CAJERO`, or `ATENCION_CLIENTE` role.
+
+### Request body
+
+<ParamField body="pacienteId" type="integer" required>
+  The ID of the patient being billed.
+</ParamField>
+
+<ParamField body="tipo" type="string">
+  The category of charge. See the [charge type reference](#charge-type-values) table below for accepted values. Example: `"CONSULTA"`.
+</ParamField>
+
+<ParamField body="referenciaId" type="integer">
+  The ID of the related entity — for example, an appointment ID when `tipo` is `"CONSULTA"`, or a prescription ID when `tipo` is `"RECETA"`.
+</ParamField>
+
+<ParamField body="monto" type="number" required>
+  The charge amount. Example: `150.00`.
+</ParamField>
+
+<ParamField body="estado" type="string">
+  Payment status. Accepted values: `"PENDIENTE"` (pending) or `"PAGADO"` (paid). Defaults to `"PENDIENTE"` if omitted. See the [payment status reference](#payment-status-values) table below.
+</ParamField>
+
+<ParamField body="fechaCobro" type="string">
+  The charge date, in `YYYY-MM-DD` format. Example: `"2024-03-15"`. Omit to let the system default to the current date.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  A human-readable description of the charge. Example: `"Consulta general - Dr. Garcia"`.
+</ParamField>
+
+<CodeGroup>
+
+```bash Request
+curl -X POST http://localhost:8080/cobros \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pacienteId": 42,
+    "tipo": "CONSULTA",
+    "referenciaId": 15,
+    "monto": 150.00,
+    "estado": "PENDIENTE",
+    "fechaCobro": "2024-03-15",
+    "descripcion": "Consulta general - Dr. Garcia"
+  }'
+```
+
+```json Request body
+{
+  "pacienteId": 42,
+  "tipo": "CONSULTA",
+  "referenciaId": 15,
+  "monto": 150.00,
+  "estado": "PENDIENTE",
+  "fechaCobro": "2024-03-15",
+  "descripcion": "Consulta general - Dr. Garcia"
+}
+```
+
+</CodeGroup>
+
+---
+
+## GET /cobros/{id}
+
+Returns a single charge record by its numeric ID. Accessible to users with the `ADMIN`, `CAJERO`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+```bash
+curl http://localhost:8080/cobros/88 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## GET /cobros/paciente/{pacienteId}
+
+Returns all charge records for a specific patient. Patients with the `PACIENTE` role can only retrieve their own charges. Accessible to users with the `ADMIN`, `CAJERO`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+```bash
+curl http://localhost:8080/cobros/paciente/42 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## Charge type values
+
+The `tipo` field categorizes the service that generated the charge. Use the values in the `tipo` column exactly as shown.
+
+| `tipo` | Description |
+|---|---|
+| `CONSULTA` | Charge for a medical consultation or appointment. |
+| `RECETA` | Charge for a prescription issued to the patient. |
+
+---
+
+## Payment status values
+
+The `estado` field tracks the payment lifecycle for a charge.
+
+| `estado` | Description |
+|---|---|
+| `PENDIENTE` | The charge has been created but not yet paid. |
+| `PAGADO` | The charge has been paid in full. |
+
+---
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| List all charges | ADMIN, CAJERO, ATENCION_CLIENTE |
+| Create charge | ADMIN, CAJERO, ATENCION_CLIENTE |
+| Get charge by ID | ADMIN, CAJERO, ATENCION_CLIENTE, PACIENTE |
+| Get charges by patient | ADMIN, CAJERO, ATENCION_CLIENTE, PACIENTE |

@@ -1,0 +1,309 @@
+---
+title: "Patients API: Create, Retrieve, and Update Records"
+description: "Create, retrieve, update, and deactivate patient records. Covers demographic data, insurance details, and medical history fields."
+---
+
+The Patients API manages all patient records in the Patient Monitoring System. Records contain demographic information, contact details, medical history, and insurance data. Patient records can be created directly through this API or automatically when a user account with the `PACIENTE` role and a `dni` is registered via the Authentication API. All soft-deleted records (where `activo` is `false`) are excluded from list responses.
+
+All requests go through the API Gateway at `http://localhost:8080`. Protected endpoints require `Authorization: Bearer <TOKEN>`.
+
+---
+
+## GET /pacientes
+
+Returns an array of all active patients (`activo=true`). Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/pacientes \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+```json Example response
+[
+  {
+    "id": 1,
+    "nombres": "Jane",
+    "apellidoPaterno": "Doe",
+    "apellidoMaterno": "Smith",
+    "dni": "12345678",
+    "fechaNacimiento": "1990-06-15",
+    "genero": "F",
+    "telefono": "987654321",
+    "email": "jdoe@example.com",
+    "activo": true
+  }
+]
+```
+
+---
+
+## POST /pacientes
+
+Creates a new patient record. Requires the `ADMIN` or `ATENCION_CLIENTE` role.
+
+**Request body**
+
+<ParamField body="nombres" type="string" required>
+  First name(s) of the patient.
+</ParamField>
+
+<ParamField body="apellidoPaterno" type="string" required>
+  Paternal last name.
+</ParamField>
+
+<ParamField body="apellidoMaterno" type="string">
+  Maternal last name.
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  National identity number. Must be exactly 8 digits and unique across all patient records.
+</ParamField>
+
+<ParamField body="fechaNacimiento" type="string" required>
+  Date of birth in `YYYY-MM-DD` format. Must be a past date.
+</ParamField>
+
+<ParamField body="genero" type="string">
+  Gender of the patient.
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Home address.
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number. Must be exactly 9 digits.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="antecedentesFamiliares" type="string">
+  Relevant family medical history.
+</ParamField>
+
+<ParamField body="alergias" type="string">
+  Known allergies.
+</ParamField>
+
+<ParamField body="condiciones" type="string">
+  Pre-existing medical conditions.
+</ParamField>
+
+<ParamField body="medicamentosActual" type="string">
+  Current medications the patient is taking.
+</ParamField>
+
+<ParamField body="nombreSeguro" type="string">
+  Name of the patient's health insurance provider.
+</ParamField>
+
+<ParamField body="numeroPoliza" type="string">
+  Insurance policy number.
+</ParamField>
+
+<ParamField body="vigenciaSeguro" type="string">
+  Insurance policy expiry date in `YYYY-MM-DD` format.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url http://localhost:8080/pacientes \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "nombres": "Jane",
+    "apellidoPaterno": "Doe",
+    "apellidoMaterno": "Smith",
+    "dni": "12345678",
+    "fechaNacimiento": "1990-06-15",
+    "genero": "F",
+    "telefono": "987654321",
+    "email": "jdoe@example.com",
+    "alergias": "Penicillin",
+    "nombreSeguro": "HealthPlus",
+    "numeroPoliza": "HP-00123",
+    "vigenciaSeguro": "2027-12-31"
+  }'
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "nombres": "Jane",
+  "apellidoPaterno": "Doe",
+  "apellidoMaterno": "Smith",
+  "dni": "12345678",
+  "fechaNacimiento": "1990-06-15",
+  "genero": "F",
+  "telefono": "987654321",
+  "email": "jdoe@example.com",
+  "alergias": "Penicillin",
+  "nombreSeguro": "HealthPlus",
+  "numeroPoliza": "HP-00123",
+  "vigenciaSeguro": "2027-12-31",
+  "activo": true
+}
+```
+
+---
+
+## GET /pacientes/{id}
+
+Returns a single patient record by its numeric ID. Accessible to users with the `ADMIN`, `DOCTOR`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the patient record to retrieve.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/pacientes/1 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": 1,
+  "nombres": "Jane",
+  "apellidoPaterno": "Doe",
+  "apellidoMaterno": "Smith",
+  "dni": "12345678",
+  "fechaNacimiento": "1990-06-15",
+  "genero": "F",
+  "telefono": "987654321",
+  "email": "jdoe@example.com",
+  "activo": true
+}
+```
+
+---
+
+## GET /pacientes/dni/{dni}
+
+Looks up a patient record by their 8-digit DNI. Requires the `ADMIN`, `DOCTOR`, or `ATENCION_CLIENTE` role.
+
+<ParamField path="dni" type="string" required>
+  The 8-digit national identity number of the patient.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/pacientes/dni/12345678 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>
+
+---
+
+## PUT /pacientes/{id}
+
+Partially updates a patient record. Only fields included in the request body are modified — omitted fields are left unchanged. Requires the `ADMIN` or `ATENCION_CLIENTE` role.
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the patient record to update.
+</ParamField>
+
+<ParamField body="nombres" type="string">
+  Updated first name(s).
+</ParamField>
+
+<ParamField body="apellidoPaterno" type="string">
+  Updated paternal last name.
+</ParamField>
+
+<ParamField body="apellidoMaterno" type="string">
+  Updated maternal last name.
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Updated phone number. Must be exactly 9 digits.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Updated email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Updated home address.
+</ParamField>
+
+<ParamField body="alergias" type="string">
+  Updated allergy information.
+</ParamField>
+
+<ParamField body="condiciones" type="string">
+  Updated pre-existing conditions.
+</ParamField>
+
+<ParamField body="medicamentosActual" type="string">
+  Updated current medications.
+</ParamField>
+
+<ParamField body="nombreSeguro" type="string">
+  Updated insurance provider name.
+</ParamField>
+
+<ParamField body="numeroPoliza" type="string">
+  Updated policy number.
+</ParamField>
+
+<ParamField body="vigenciaSeguro" type="string">
+  Updated insurance expiry date in `YYYY-MM-DD` format.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request PUT \
+  --url http://localhost:8080/pacientes/1 \
+  --header 'Authorization: Bearer <TOKEN>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "telefono": "912345678",
+    "alergias": "Penicillin, Aspirin"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## DELETE /pacientes/{id}
+
+Deactivates a patient record by setting `activo` to `false`. This is a soft delete — the record is retained and excluded from list responses. Requires the `ADMIN` role.
+
+<Warning>
+  Deactivated patients are hidden from list endpoints but their records and related appointments or consultations are preserved. This action cannot be undone through the API.
+</Warning>
+
+<ParamField path="id" type="integer" required>
+  Numeric ID of the patient record to deactivate.
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl --request DELETE \
+  --url http://localhost:8080/pacientes/1 \
+  --header 'Authorization: Bearer <TOKEN>'
+```
+
+</CodeGroup>

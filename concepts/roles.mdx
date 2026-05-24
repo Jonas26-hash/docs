@@ -1,0 +1,65 @@
+---
+title: 'User Roles and Access Permissions in the PMS System'
+description: 'Learn how the six built-in roles control access to Patient Monitoring System resources and how to assign them at user registration.'
+---
+
+The Patient Monitoring System uses role-based access control (RBAC) to determine what each user can see and do. Every API request is evaluated against the roles attached to the authenticated user, so understanding which role grants which capabilities is essential before you start integrating.
+
+## Available roles
+
+The system ships with six roles. Each role is tailored to a specific staff function or patient use case.
+
+| Role | Description | Key capabilities |
+|------|-------------|-----------------|
+| `ADMIN` | Full system access | All endpoints across all services |
+| `DOCTOR` | Clinical staff | Read patients; manage appointments; create prescriptions; read medications |
+| `ATENCION_CLIENTE` | Customer service | Read/write patients, appointments, and prescriptions; read medications; manage billing and notifications |
+| `FARMACEUTICO` | Pharmacy staff | Read and write medications and dispensations only |
+| `CAJERO` | Billing staff | Read and write charges (`cobros`); read user profiles |
+| `PACIENTE` | End patient | Read own patient profile, appointments, prescriptions, charges, and notifications |
+
+<Note>
+Roles are assigned at registration time by an `ADMIN`. Regular users cannot change their own roles after the account is created.
+</Note>
+
+## Assigning multiple roles
+
+A user can hold more than one role simultaneously. Roles are stored as an array in the user record, so you can combine them to match real-world staff responsibilities — for example, a doctor who also handles their own billing queries.
+
+Specify roles in the `roles` field when calling the registration endpoint:
+
+```json
+{
+  "username": "dr.garcia",
+  "password": "s3cureP@ss",
+  "email": "garcia@hospital.example",
+  "roles": ["DOCTOR", "ATENCION_CLIENTE"]
+}
+```
+
+<Tip>
+When you register a user with the `PACIENTE` role **and** include a `dni` field in the request body, the system automatically creates a linked patient record. This saves you a separate `POST /pacientes` call and ensures the patient's account is immediately associated with their clinical data.
+</Tip>
+
+## Role capabilities at a glance
+
+<AccordionGroup>
+  <Accordion title="ADMIN">
+    Admins have unrestricted access to every endpoint in the platform, including user management, system configuration, and all clinical and billing resources. Use this role only for trusted system administrators.
+  </Accordion>
+  <Accordion title="DOCTOR">
+    Doctors can read patient records and medication catalogs, create and manage appointments, and issue prescriptions. They cannot modify billing records or administer other users.
+  </Accordion>
+  <Accordion title="ATENCION_CLIENTE">
+    Customer service agents have broad read/write access to patient-facing data — including patients, appointments, prescriptions, billing, and notifications — making this role suitable for front-desk staff who coordinate care across departments.
+  </Accordion>
+  <Accordion title="FARMACEUTICO">
+    Pharmacy staff are scoped exclusively to the medication and dispensation resources. They can update medication stock and mark prescriptions as dispensed, but cannot access clinical or billing data.
+  </Accordion>
+  <Accordion title="CAJERO">
+    Cashiers can create and update charge records (`cobros`) and look up user profiles to verify identities at the billing window. They have no access to clinical records.
+  </Accordion>
+  <Accordion title="PACIENTE">
+    Patients have read-only access to their own data. The scope is strictly limited to records associated with their own account — they cannot view other patients' information.
+  </Accordion>
+</AccordionGroup>

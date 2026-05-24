@@ -1,0 +1,63 @@
+---
+title: "Patient Monitoring System: Hospital Management API"
+description: "Manage patients, appointments, prescriptions, pharmacy inventory, billing, and notifications for your hospital through a unified REST API."
+---
+
+The Patient Monitoring System is a hospital management platform that lets you manage the complete patient care lifecycle — from registration and appointments to prescriptions, dispensations, billing, and notifications — all through a single API gateway at port 8080.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Set up your environment and make your first API call in minutes.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn how to obtain a JWT token and authenticate every request.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth">
+    Explore the complete public API — endpoints, parameters, and responses.
+  </Card>
+  <Card title="Roles & Permissions" icon="shield-halved" href="/concepts/roles">
+    Understand the six system roles and what each can access.
+  </Card>
+</CardGroup>
+
+## What you can do
+
+The Patient Monitoring System covers every stage of a hospital visit:
+
+<CardGroup cols={2}>
+  <Card title="Patients" icon="user-injured" href="/concepts/patients">
+    Register and manage patient records including medical history and insurance.
+  </Card>
+  <Card title="Appointments" icon="calendar-check" href="/concepts/appointments">
+    Schedule, update, and track medical appointments for patients.
+  </Card>
+  <Card title="Prescriptions" icon="file-medical" href="/concepts/prescriptions">
+    Issue prescriptions and track their dispensation status.
+  </Card>
+  <Card title="Pharmacy" icon="pills" href="/guides/pharmacy-workflow">
+    Manage medication inventory and record dispensations.
+  </Card>
+  <Card title="Billing" icon="receipt" href="/guides/billing-workflow">
+    Create and track charges for consultations and services.
+  </Card>
+  <Card title="Notifications" icon="bell" href="/guides/notifications">
+    Send reminders and alerts to patients via EMAIL or SMS.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Register and log in">
+    Create a user account via `POST /auth/register`, then call `POST /auth/login` to receive a JWT token.
+  </Step>
+  <Step title="Authenticate requests">
+    Include your token in every request: `Authorization: Bearer <your-token>`. Tokens are valid for 24 hours.
+  </Step>
+  <Step title="Use the API">
+    Call any endpoint through the API Gateway at `http://localhost:8080`. All services are accessible through a single entry point.
+  </Step>
+  <Step title="Manage the full care lifecycle">
+    Register patients, schedule appointments, issue prescriptions, dispense medications, and process billing — all from one unified API.
+  </Step>
+</Steps>

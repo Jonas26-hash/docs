@@ -1,0 +1,79 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Patient Monitoring System",
+  "theme": "luma",
+  "colors": {
+    "primary": "#1E6FD9",
+    "light": "#E8F0FB",
+    "dark": "#0F3A7A"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Jonas26-hash/Sistema-de-monitoreo-de-pacientes"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/roles",
+              "concepts/patients",
+              "concepts/appointments",
+              "concepts/prescriptions"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/patient-workflow",
+              "guides/pharmacy-workflow",
+              "guides/billing-workflow",
+              "guides/notifications"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth"
+            ]
+          },
+          {
+            "group": "Clinical",
+            "pages": [
+              "api/patients",
+              "api/appointments",
+              "api/consultations",
+              "api/prescriptions"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "api/pharmacy",
+              "api/billing",
+              "api/notifications"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

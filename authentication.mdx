@@ -1,0 +1,212 @@
+---
+title: "Authenticate with the Patient Monitoring System API"
+description: "Learn how to obtain a JWT token, authenticate every API request, manage token expiry, create users, and understand the six role-based access levels."
+---
+
+Every request to the Patient Monitoring System API must include a valid JWT token. You obtain that token by logging in with your credentials, then pass it as a header on each subsequent call. This page walks you through the complete authentication flow — from your first login to registering additional users and understanding what each role can access.
+
+## Log in and get your token
+
+Call `POST /auth/login` with your username and password. The API returns a signed JWT (RS256 algorithm) that is valid for 24 hours.
+
+<Steps>
+  <Step title="Send your credentials">
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request POST \
+      --url http://localhost:8080/auth/login \
+      --header 'Content-Type: application/json' \
+      --data '{"username": "admin", "password": "admin123"}'
+    ```
+
+    ```http HTTP
+    POST /auth/login HTTP/1.1
+    Host: localhost:8080
+    Content-Type: application/json
+
+    {
+      "username": "admin",
+      "password": "admin123"
+    }
+    ```
+
+    </CodeGroup>
+
+  </Step>
+  <Step title="Receive your token">
+
+    A successful response returns a token string you will use on all subsequent requests.
+
+    ```json Response
+    {
+      "token": "eyJhbGciOiJSUzI1NiJ9..."
+    }
+    ```
+
+    The token payload includes the following claims: `sub` (username), `userId`, `roles`, `email`, `nombres`, and `apellidos`.
+
+  </Step>
+</Steps>
+
+## Authenticate every request
+
+Include your token in the `Authorization` header of every call to a protected endpoint.
+
+```http HTTP
+Authorization: Bearer <your-token>
+```
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url http://localhost:8080/pacientes \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...'
+```
+
+```http HTTP
+GET /pacientes HTTP/1.1
+Host: localhost:8080
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+```
+
+</CodeGroup>
+
+<Warning>
+  Omitting the `Authorization` header, or sending an expired or malformed token, returns `401 Unauthorized`. Calling an endpoint your role cannot access returns `403 Forbidden`.
+</Warning>
+
+## Token lifetime
+
+Tokens expire 24 hours after they are issued. There is no refresh mechanism — once a token expires you must log in again to receive a new one.
+
+<Tip>
+  Store the token securely (for example, in an environment variable or a secrets manager) and track its issue time so you can re-authenticate before it expires.
+</Tip>
+
+## Create additional users
+
+The first user in a fresh system is always created without a token — the API recognizes that no accounts exist yet and lets you bootstrap the initial administrator account. Every subsequent user requires an active `ADMIN` token.
+
+<Steps>
+  <Step title="Create the first user (no token required)">
+
+    When the system has zero existing users, send the registration request without an `Authorization` header.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request POST \
+      --url http://localhost:8080/auth/register \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "username": "admin",
+        "password": "admin123",
+        "email": "admin@hospital.com",
+        "roles": ["ADMIN"],
+        "nombres": "Administrador",
+        "apellidos": "Sistema"
+      }'
+    ```
+
+    ```json Request body
+    {
+      "username": "admin",
+      "password": "admin123",
+      "email": "admin@hospital.com",
+      "roles": ["ADMIN"],
+      "nombres": "Administrador",
+      "apellidos": "Sistema"
+    }
+    ```
+
+    </CodeGroup>
+
+    <Note>
+      The first user is automatically granted the `ADMIN` role regardless of the `roles` field value. Log in immediately after to obtain your admin token.
+    </Note>
+
+  </Step>
+  <Step title="Create subsequent users (ADMIN token required)">
+
+    After the initial setup, only an `ADMIN` can register new users. Include your admin token in the `Authorization` header.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request POST \
+      --url http://localhost:8080/auth/register \
+      --header 'Content-Type: application/json' \
+      --header 'Authorization: Bearer <ADMIN_TOKEN>' \
+      --data '{
+        "username": "dr.garcia",
+        "password": "securepassword",
+        "email": "garcia@hospital.com",
+        "roles": ["DOCTOR"],
+        "nombres": "Luis",
+        "apellidos": "García"
+      }'
+    ```
+
+    ```http HTTP
+    POST /auth/register HTTP/1.1
+    Host: localhost:8080
+    Content-Type: application/json
+    Authorization: Bearer <ADMIN_TOKEN>
+
+    {
+      "username": "dr.garcia",
+      "password": "securepassword",
+      "email": "garcia@hospital.com",
+      "roles": ["DOCTOR"],
+      "nombres": "Luis",
+      "apellidos": "García"
+    }
+    ```
+
+    </CodeGroup>
+
+  </Step>
+</Steps>
+
+## Available roles
+
+Assign one or more roles when registering a user. Each role grants access to a specific set of endpoints.
+
+| Role | Access level |
+|---|---|
+| `ADMIN` | Full access to every endpoint, including user management and system configuration. |
+| `DOCTOR` | Read patients, appointments, consultations, prescriptions, and medications. |
+| `ATENCION_CLIENTE` | Read and write patients, appointments, prescriptions, billing, and notifications. |
+| `FARMACEUTICO` | Read and write medications and dispensation records. |
+| `CAJERO` | Read and write billing records. |
+| `PACIENTE` | Read own records only — own patient profile, appointments, prescriptions, charges, and notifications. |
+
+## Auto-create a patient record on registration
+
+When you register a user with the `PACIENTE` role and include a `dni` field in the request body, the system automatically creates a linked patient record for that user. You do not need to call a separate patient-creation endpoint.
+
+```json Request body with dni
+{
+  "username": "patient.maria",
+  "password": "securepassword",
+  "email": "maria@example.com",
+  "roles": ["PACIENTE"],
+  "nombres": "María",
+  "apellidos": "López",
+  "dni": "12345678"
+}
+```
+
+<Note>
+  If you register a `PACIENTE` user without a `dni` field, no patient record is created automatically. You will need to create the patient record separately via the patients API.
+</Note>
+
+## Common authentication errors
+
+| Status | Meaning | Common cause |
+|---|---|---|
+| `401 Unauthorized` | Your request could not be authenticated. | Missing `Authorization` header, expired token, or malformed token. |
+| `403 Forbidden` | Your identity was confirmed but your role does not permit this action. | Calling an endpoint that requires a role your account does not have. |

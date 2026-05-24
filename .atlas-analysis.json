@@ -1,0 +1,122 @@
+{
+  "projectType": "saas",
+  "projectName": "Patient Monitoring System",
+  "projectDescription": "A microservices-based hospital management platform for managing patients, appointments, prescriptions, pharmacy inventory, billing, and notifications.",
+  "theme": "luma",
+  "primaryColor": "#1E6FD9",
+  "lightColor": "#E8F0FB",
+  "darkColor": "#0F3A7A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/roles",
+              "concepts/patients",
+              "concepts/appointments",
+              "concepts/prescriptions"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/patient-workflow",
+              "guides/pharmacy-workflow",
+              "guides/billing-workflow",
+              "guides/notifications"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth"
+            ]
+          },
+          {
+            "group": "Clinical",
+            "pages": [
+              "api/patients",
+              "api/appointments",
+              "api/consultations",
+              "api/prescriptions"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "api/pharmacy",
+              "api/billing",
+              "api/notifications"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Patient records management with medical history, insurance, and allergies",
+    "Appointment scheduling with doctor and patient assignment",
+    "Medical consultations with diagnosis and treatment documentation",
+    "Prescription issuance and dispensation tracking",
+    "Pharmacy inventory management with low-stock alerts",
+    "Billing and charge tracking per patient",
+    "Notification system with EMAIL and SMS channels",
+    "Role-based access control with 6 distinct roles (ADMIN, DOCTOR, FARMACEUTICO, ATENCION_CLIENTE, CAJERO, PACIENTE)",
+    "JWT-based authentication (RS256) with 24-hour token lifetime",
+    "Single API Gateway entry point on port 8080 with circuit breaker resilience"
+  ],
+  "publicApiSurface": [
+    "POST /auth/login",
+    "POST /auth/register",
+    "GET /pacientes",
+    "POST /pacientes",
+    "GET /pacientes/{id}",
+    "GET /pacientes/dni/{dni}",
+    "PUT /pacientes/{id}",
+    "DELETE /pacientes/{id}",
+    "GET /citas",
+    "POST /citas",
+    "GET /citas/{id}",
+    "GET /citas/paciente/{pacienteId}",
+    "PUT /citas/{id}",
+    "GET /consultas",
+    "POST /consultas",
+    "GET /consultas/{id}",
+    "GET /consultas/paciente/{pacienteId}",
+    "GET /recetas",
+    "POST /recetas",
+    "GET /recetas/{id}",
+    "GET /recetas/paciente/{pacienteId}",
+    "GET /medicamentos",
+    "POST /medicamentos",
+    "GET /medicamentos/{id}",
+    "GET /medicamentos/codigo/{codigo}",
+    "PUT /medicamentos/{id}",
+    "GET /dispensaciones",
+    "POST /dispensaciones",
+    "GET /dispensaciones/receta/{recetaId}",
+    "GET /cobros",
+    "POST /cobros",
+    "GET /cobros/{id}",
+    "GET /cobros/paciente/{pacienteId}",
+    "GET /notificaciones",
+    "POST /notificaciones",
+    "GET /notificaciones/paciente/{pacienteId}"
+  ]
+}

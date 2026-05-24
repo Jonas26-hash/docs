@@ -1,0 +1,113 @@
+---
+title: "Notifications API Reference — Patient Messaging API"
+description: "Send and retrieve patient notifications via email or SMS — including reminders, alerts, and custom messages through the hospital system."
+---
+
+The notifications endpoints let you send messages to patients and retrieve their notification history. You can reach patients by email or SMS, and categorize each message as a reminder, alert, or other notification type. When you post a notification, the system records the delivery timestamp and tracks whether it was sent — you do not set these fields yourself.
+
+All requests go through `http://localhost:8080` and require the `Authorization: Bearer <TOKEN>` header.
+
+<Note>
+  Two fields on every notification record are managed automatically by the system. `fechaEnvio` is set to the current datetime when the notification is created, and `enviada` is a boolean that tracks delivery status — it starts as `false` and is updated by the system when delivery is confirmed. Do not include either field in your request body.
+</Note>
+
+---
+
+## GET /notificaciones
+
+Returns all notification records in the system. Requires the `ADMIN` or `ATENCION_CLIENTE` role.
+
+```bash
+curl http://localhost:8080/notificaciones \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## POST /notificaciones
+
+Creates and sends a notification to a patient. The system sets `fechaEnvio` and `enviada` automatically. Requires the `ADMIN` or `ATENCION_CLIENTE` role.
+
+### Request body
+
+<ParamField body="pacienteId" type="integer" required>
+  The ID of the patient who will receive the notification.
+</ParamField>
+
+<ParamField body="tipo" type="string">
+  The notification category. Common values: `"RECORDATORIO"` (reminder) or `"ALERTA"` (alert). Omit if no category applies.
+</ParamField>
+
+<ParamField body="mensaje" type="string" required>
+  The message text that will be delivered to the patient. Example: `"Recuerde su cita medica manana a las 10:00 AM"`.
+</ParamField>
+
+<ParamField body="canal" type="string">
+  The delivery channel. Accepted values: `"EMAIL"` or `"SMS"`. Omit to use the system default.
+</ParamField>
+
+<CodeGroup>
+
+```bash Request
+curl -X POST http://localhost:8080/notificaciones \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pacienteId": 42,
+    "tipo": "RECORDATORIO",
+    "mensaje": "Recuerde su cita medica manana a las 10:00 AM",
+    "canal": "EMAIL"
+  }'
+```
+
+```json Request body
+{
+  "pacienteId": 42,
+  "tipo": "RECORDATORIO",
+  "mensaje": "Recuerde su cita medica manana a las 10:00 AM",
+  "canal": "EMAIL"
+}
+```
+
+</CodeGroup>
+
+---
+
+## GET /notificaciones/paciente/{pacienteId}
+
+Returns all notifications for a specific patient. Patients with the `PACIENTE` role can only retrieve their own notifications. Accessible to users with the `ADMIN`, `ATENCION_CLIENTE`, or `PACIENTE` role.
+
+```bash
+curl http://localhost:8080/notificaciones/paciente/42 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## Notification type values
+
+The `tipo` field categorizes the purpose of the notification.
+
+| `tipo` | Description |
+|---|---|
+| `RECORDATORIO` | Reminder — for upcoming appointments or medication schedules. |
+| `ALERTA` | Alert — for urgent or time-sensitive information. |
+
+## Delivery channel values
+
+The `canal` field determines how the message is delivered to the patient.
+
+| `canal` | Description |
+|---|---|
+| `EMAIL` | Delivers the notification to the patient's registered email address. |
+| `SMS` | Delivers the notification as a text message to the patient's phone number. |
+
+---
+
+## Role permissions summary
+
+| Operation | Permitted roles |
+|---|---|
+| List all notifications | ADMIN, ATENCION_CLIENTE |
+| Send notification | ADMIN, ATENCION_CLIENTE |
+| Get notifications by patient | ADMIN, ATENCION_CLIENTE, PACIENTE |

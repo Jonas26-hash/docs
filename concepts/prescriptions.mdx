@@ -1,0 +1,78 @@
+---
+title: 'Prescriptions: Full Data Model and Dispensation Flow'
+description: 'Understand every field in the prescription data model and follow the two-step dispensation workflow that moves a prescription from issued to filled.'
+---
+
+Prescriptions (`recetas`) are the formal record of medications ordered for a patient. A doctor creates a prescription — optionally linked to a consultation — and it remains in an unfilled state until a pharmacist marks it as dispensed. Understanding this two-step workflow is essential for integrations that span both the clinical and pharmacy sides of the platform.
+
+## Prescription data model
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | Auto-generated | Unique numeric identifier assigned by the system. |
+| `pacienteId` | integer | Yes | ID of the patient the prescription is for. |
+| `doctorId` | integer | No | ID of the issuing doctor. |
+| `consultaId` | integer | No | ID of the consultation this prescription is linked to. |
+| `fechaEmision` | string | Yes | Issue date in `YYYY-MM-DD` format (e.g., `"2026-04-25"`). |
+| `fechaVigencia` | string | No | Expiry date in `YYYY-MM-DD` format. After this date the prescription can no longer be dispensed. |
+| `medicamentos` | string | Yes | Free-text description of the medications ordered, including dosage and frequency (e.g., `"Amoxicilina 500mg — 1 tablet every 8 hours for 7 days"`). |
+| `indicaciones` | string | No | Additional instructions for the patient (e.g., `"Take with food"`, `"Avoid alcohol"`). |
+| `dispensada` | boolean | Auto-set | `false` when the prescription is created; set to `true` by the system when a pharmacist dispenses it. |
+| `fechaDispensacion` | string | Auto-set | Date the prescription was dispensed. Set automatically by the system; do not supply this field. |
+
+<Note>
+`dispensada` and `fechaDispensacion` are managed entirely by the system. Attempting to set them manually in a `POST` or `PUT` request body will have no effect.
+</Note>
+
+## Dispensation workflow
+
+Prescriptions follow a linear two-step lifecycle:
+
+<Steps>
+  <Step title="Doctor issues the prescription">
+    A user with the `DOCTOR` or `ATENCION_CLIENTE` role creates the prescription via `POST /recetas`. The record is saved with `dispensada: false` and no `fechaDispensacion`.
+  </Step>
+  <Step title="Pharmacist dispenses the prescription">
+    A user with the `FARMACEUTICO` role retrieves the prescription and calls the dispensation endpoint. The system sets `dispensada` to `true` and records today's date in `fechaDispensacion`.
+  </Step>
+</Steps>
+
+<Warning>
+Once a prescription is marked as dispensed (`dispensada: true`), it cannot be reversed. Confirm the correct prescription and patient before triggering dispensation.
+</Warning>
+
+## Retrieving prescriptions for a patient
+
+To list all prescriptions associated with a specific patient, use:
+
+```bash
+GET /recetas/paciente/{pacienteId}
+```
+
+### Example request
+
+```bash
+curl http://localhost:8080/recetas/paciente/42 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+## Example prescription object
+
+```json
+{
+  "id": 15,
+  "pacienteId": 42,
+  "doctorId": 3,
+  "consultaId": 8,
+  "fechaEmision": "2026-04-25",
+  "fechaVigencia": "2026-05-25",
+  "medicamentos": "Amoxicilina 500mg — 1 cápsula cada 8 horas por 7 días",
+  "indicaciones": "Tomar con alimentos. Completar el tratamiento aunque mejoren los síntomas.",
+  "dispensada": false,
+  "fechaDispensacion": null
+}
+```
+
+<Tip>
+Include a `consultaId` when creating a prescription to keep the full clinical chain — appointment → consultation → prescription — linked and queryable in a single audit trail. See [Managing Appointments and Consultations](/concepts/appointments) for how consultations relate to appointments.
+</Tip>
